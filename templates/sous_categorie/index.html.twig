@@ -39,7 +39,7 @@
 <div class="header-title color-fond2 font-title">
 	<h1>
 		Sous-catégorie :
-		{{souscat.nom}}
+		{{souscat.nom|e('html_attr')}}
 	</h1>
 </div>
 
@@ -50,14 +50,40 @@
 		<div class="card-produit color-fond2">
 
 			<div class="card-produit-img">
-				<img src="/{{ produit.image }}" alt="{{ produit.libellecourt }}">
+				<img src="/{{ produit.image|e('html_attr') }}" alt="{{ produit.libellecourt|e('html_attr') }}">
 			</div>
-			<h2 class="font-title">{{produit.libellecourt}}</h2>
-			<a class="color-secondLien" href="">{{produit.souscategorie.nom}}</a>
-			<p>{{ produit.prixHt * 1.2 }}€</p>
-			<a class="card-produit-btn" href="/produit/{{produit.id}}">Voir le produit</a>
+			<h2 class="font-title">{{produit.libellecourt|e('html_attr')}}</h2>
+			<a class="color-secondLien" href="{{ path('app_sous_categorie', {'id': produit.sousCategorie.id}) }}">{{produit.souscategorie.nom|e('html_attr')}}</a>
+			<p>
+				{% if produit.promotion is not null and produit.promotion > 0 %}
+					{% if app.user %}
+						<span class="card-produit-promotion color-secondLien">
+							{{ produit.prixHt * app.user.coefficient | number_format(2, '.', ' ') }}</span>
+
+
+						{{ produit.prixHt * app.user.coefficient * (1 - produit.promotion) | number_format(2, '.', ' ') }}
+					{% else %}
+						<span class="card-produit-promotion color-secondLien">{{ produit.prixHt * 1.2 | number_format(2, '.', ' ') }}</span>
+						{{ produit.prixHt * 1.2 * (1 - produit.promotion) | number_format(2, '.', ' ') }}
+					{% endif %}
+					€
+				{% else %}
+					{% if app.user %}
+						{{ produit.prixHt * app.user.coefficient | number_format(2, '.', ' ') }}
+					{% else %}
+						{{ produit.prixHt * 1.2 | number_format(2, '.', ' ') }}
+					{% endif %}
+					€
+				{% endif %}
+
+			</p>
+
+			<a class="card-produit-btn" href="{{ path('app_produit', {'id': produit.id}) }} ">Voir le produit</a>
 
 		</div>
+	{% else %}
+
+		<h1 class="color-erreur-text">Erreur dans le chargement des produits</h1>
 	{% endfor %}
 
 

@@ -28,6 +28,17 @@ class DetailCommande
     #[ORM\JoinColumn(nullable: false)]
     private ?Commande $Commande = null;
 
+#[ORM\Column(length: 255, nullable: false)]
+    private ?string $statut = null;
+
+#[ORM\Column(type: Types::DECIMAL, precision: 3, scale: 2, nullable: true)]
+private ?string $promotion = null;
+
+    public function __construct()
+    {
+        $this->statut = 'en_attente';
+    }
+
     public function getId(): ?int
     {
         return $this->id;
@@ -77,6 +88,30 @@ class DetailCommande
     public function setCommande(?Commande $Commande): static
     {
         $this->Commande = $Commande;
+
+        return $this;
+    }
+
+    public function getStatut(): ?string
+    {
+        return $this->statut;
+    }
+
+    public function setStatut(string $statut): static
+    {
+        $this->statut = $statut;
+
+        return $this;
+    }
+
+    public function getPromotion(): ?string
+    {
+        return $this->promotion;
+    }
+
+    public function setPromotion(?string $promotion): static
+    {
+        $this->promotion = $promotion;
 
         return $this;
     }

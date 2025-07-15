@@ -49,6 +49,11 @@ final class PanierController extends AbstractController
                     
                     if ($nouvelleQuantite !== null && is_numeric($nouvelleQuantite)) {
                         $nouvelleQuantite = (int)$nouvelleQuantite;
+
+                        if ($nouvelleQuantite > 10) {
+                            $this->addFlash('error', 'Quantité limitée à 10 par produit dans le panier.');
+                            return $this->redirectToRoute('app_panier');
+                        }
                         
                         if ($nouvelleQuantite <= 0) {
                             $panierService->supprimerProduit((int)$produitId);
@@ -70,7 +75,7 @@ final class PanierController extends AbstractController
             }
         }
         
-        dump($request->getSession()->get('panier', []));
+        // dump($request->getSession()->get('panier', []));
         
         $panier = $panierService->getPanier(); 
 
@@ -83,22 +88,32 @@ final class PanierController extends AbstractController
         $totalPanier = 0;
         
         foreach ($panier as $produitId => $quantite) {
-        
-            $produit = $produitRepository->find($produitId);
 
-            if ($produit) {
-                $prixTTC = $produit->getPrixHt() * $coefficient;
+    $produit = $produitRepository->find($produitId);
+
+        if ($produit) {
+                $prixBase = $produit->getPrixHt() * $coefficient;
+
+                $prixTTC = $prixBase;
+
+                if ($produit->getPromotion() !== null && $produit->getPromotion() > 0) {
+                    $prixTTC = $prixBase * (1 - $produit->getPromotion());
+                }
+
                 $sousTotal = $prixTTC * $quantite;
+
                 $detailsPanier[] = [
                     'produit' => $produit,
                     'quantite' => $quantite,
+                    'prixBase' => $prixBase,
                     'prixTTC' => $prixTTC,
                     'sousTotal' => $sousTotal
                 ];
-                
+
                 $totalPanier += $sousTotal;
+                }
             }
-        }
+
 
         return $this->render('panier/index.html.twig', [
             'controller_name' => 'PanierController',
