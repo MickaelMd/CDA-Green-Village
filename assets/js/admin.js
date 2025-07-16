@@ -63,6 +63,110 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
+  // ---------------- Produit Select -----------------
+
+  const selectProduit = document.querySelector(
+    "#formProduit .admin-select.font-title"
+  );
+
+  if (selectProduit) {
+    selectProduit.addEventListener("change", function () {
+      const selectedOption = selectProduit.options[selectProduit.selectedIndex];
+
+      if (selectedOption.value === "") {
+        document.getElementById("produit-id").value = "";
+        document.getElementById("produit-libelle_court").value = "";
+        document.getElementById("produit_libelle_long").value = "";
+        document.getElementById("produit-stock").value = "";
+        document.getElementById("produit-prixht").value = "";
+        document.getElementById("produit-prixFournisseur").value = "";
+        document.getElementById("produit-promotion").value = "";
+        document.getElementById("produit-select-fournisseur").value = "";
+        document.getElementById("produit-categorie").value = "";
+        document.getElementById("produit-sous-categorie").value = "";
+        document.getElementById("produit-sous-categorie").disabled = true;
+        document.getElementById("produit-active").checked = false;
+        document.getElementById("produit-image-preview").src =
+          "./image/logo/interface/placeholder.svg";
+        document.getElementById("produit-image").value = "";
+        return;
+      }
+
+      const id = selectedOption.value;
+      const nom = selectedOption.dataset.userNom;
+      const description = selectedOption.dataset.userDesc;
+      const stock = selectedOption.dataset.userStock;
+      const prixHt = selectedOption.dataset.userPrixht;
+      const prixFourni = selectedOption.dataset.userPrixfourni;
+      const promotion = selectedOption.dataset.userPromo;
+      const fournisseurId = selectedOption.dataset.userFourni;
+      const sousCategorieId = selectedOption.dataset.userCat;
+      const active = selectedOption.dataset.userActive;
+      const imageUrl = selectedOption.dataset.userImage;
+
+      // Remplir les champs du formulaire
+      document.getElementById("produit-id").value = id || "";
+      document.getElementById("produit-libelle_court").value = nom || "";
+      document.getElementById("produit_libelle_long").value = description || "";
+      document.getElementById("produit-stock").value = stock || "";
+      document.getElementById("produit-prixht").value = prixHt || "";
+      document.getElementById("produit-prixFournisseur").value =
+        prixFourni || "";
+      document.getElementById("produit-promotion").value = promotion || "";
+      document.getElementById("produit-select-fournisseur").value =
+        fournisseurId || "";
+      document.getElementById("produit-active").checked = active === "1";
+
+      const imagePreview = document.getElementById("produit-image-preview");
+      if (imageUrl && imageUrl !== "") {
+        imagePreview.src = imageUrl;
+      } else {
+        imagePreview.src = "./image/logo/interface/placeholder.svg";
+      }
+
+      if (sousCategorieId) {
+        const categorieSelect = document.getElementById("produit-categorie");
+        const sousCategorieSelect = document.getElementById(
+          "produit-sous-categorie"
+        );
+
+        for (let i = 0; i < categorieSelect.options.length; i++) {
+          const option = categorieSelect.options[i];
+          const sousCategories = option.getAttribute("data-sous-categories");
+
+          if (sousCategories && sousCategories !== "null") {
+            try {
+              const decodedJson = sousCategories.replace(/&quot;/g, '"');
+              const sousCategoriesData = JSON.parse(decodedJson);
+
+              const sousCategorieFound = sousCategoriesData.find(
+                (sc) => sc.id == sousCategorieId
+              );
+
+              if (sousCategorieFound) {
+                categorieSelect.value = option.value;
+
+                const event = new Event("change");
+                categorieSelect.dispatchEvent(event);
+
+                setTimeout(() => {
+                  sousCategorieSelect.value = sousCategorieId;
+                }, 0);
+
+                break;
+              }
+            } catch (error) {
+              console.error(
+                "Erreur lors du parsing des sous-catégories:",
+                error
+              );
+            }
+          }
+        }
+      }
+    });
+  }
+
   // -------------------- verif fournisseur --------------------
 
   const fournisseurInput = {
@@ -244,12 +348,12 @@ document.addEventListener("DOMContentLoaded", function () {
   };
 
   const regexProduit = {
-    nom: /^[a-zA-Z0-9\s'*.,-]+$/,
-    description: /^[a-zA-Z0-9\s'*.,-]+$/,
+    nom: /^[\p{L}0-9\s'*.,\-_/:'()«»°&@€$%?!+="\[\]{}|\\`~#^]+$/u,
+    description: /^[\p{L}0-9\s'*.,\-_/:'()«»°&@€$%?!+="\[\]{}|\\`~#^]+$/u,
     stock: /^[0-9]+$/,
     prixHt: /^[0-9]+(\.[0-9]{1,2})?$/,
     prixFourni: /^[0-9]+(\.[0-9]{1,2})?$/,
-    promotion: /^[0-9]+$/,
+    promotion: /^[0-9]+[.,]?[0-9]*$/,
     nomFourni: /^[0-9]+$/,
     categorie: /^[0-9]+$/,
     sousCat: /^[0-9]+$/,
@@ -276,7 +380,13 @@ document.addEventListener("DOMContentLoaded", function () {
       }
 
       if (key === "image") {
-        if (!champ.files || champ.files.length === 0) {
+        const imagePreview = document.getElementById("produit-image-preview");
+        const hasExistingImage =
+          imagePreview &&
+          imagePreview.src &&
+          !imagePreview.src.includes("placeholder.svg");
+
+        if ((!champ.files || champ.files.length === 0) && !hasExistingImage) {
           showError(idChamp, produitErreur[key]);
           isValid = false;
         } else {
