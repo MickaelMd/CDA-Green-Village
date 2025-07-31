@@ -5,18 +5,16 @@ namespace App\Controller;
 use app\Entity\Produit;
 use App\Entity\Fournisseur;
 use app\Entity\SousCategorie;
-use App\Entity\DetailCommande;
-use Symfony\Component\Mime\Address;
+use App\Service\UpdateDetComService;
 use App\Repository\ProduitRepository;
 use App\Repository\CommandeRepository;
+use App\Service\UpdateCommandeService;
 use App\Repository\CategorieRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use App\Repository\FournisseurRepository;
 use App\Repository\UtilisateurRepository;
 use App\Repository\DetailCommandeRepository;
-use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Csrf\CsrfToken;
@@ -353,8 +351,6 @@ public function updateProduit(
                 }
             }
 
-
-         
             $produit->setLibelleCourt(trim($lib_court));
             $produit->setLibelleLong(trim($lib_long));
             $produit->setStock(trim($stock));
@@ -384,12 +380,13 @@ public function updateProduit(
     }
 
 
-
     #[Route('/admin-update-commande', name: 'app_admin_update_commande', methods: ['POST'])]
-    public function adminUpdateCom(CsrfTokenManagerInterface $csrfTokenManager, Request $request, CommandeRepository $commandeRepository, DetailCommandeRepository $detailComRepo,  EntityManagerInterface $entityManager, MailerInterface $mailer): Response
-    {
-
-         if (!$this->isGranted('ROLE_COMMERCIAL') && !$this->isGranted('ROLE_ADMIN')) {
+    public function commandeUpdateCom(
+       CsrfTokenManagerInterface $csrfTokenManager, 
+        Request $request, 
+        UpdateCommandeService $commandeUpdateService
+    ): Response {
+        if (!$this->isGranted('ROLE_COMMERCIAL') && !$this->isGranted('ROLE_ADMIN')) {
             $this->addFlash('error', 'Vous n\'avez pas les droits pour accéder à cette page.');
             return $this->redirectToRoute('app_accueil');
         }
@@ -399,67 +396,33 @@ public function updateProduit(
             throw new \Exception('Jeton CSRF invalide.');
         }
 
-            $tabValue = ['en_attente', 'en_préparation', 'expédiée', 'livrée'];
-            
-            $id  = $request->request->get('com_id');
-            $select = $request->request->get('statut');
-            $commande = $commandeRepository->find($id);
-            $detailCommande = $detailComRepo->findBy(['Commande' => $commande]);
+        $commandeId = (int) $request->request->get('com_id');
+        $newStatus = $request->request->get('statut');
 
-            if (!$commande) {
-                $this->addFlash('error', 'Commande introuvable.');
-                return $this->redirectToRoute('app_admin');
-            }
-
-            if (!in_array($select, $tabValue, true)) {
-                    $this->addFlash('error', 'Erreur dans le formulaire.');
-                    return $this->redirectToRoute('app_admin');
-                }
- 
-        try {
-
-          foreach ($detailCommande as $key) {
-            
-            $key->setStatut($select);
-            $entityManager->persist($key);
-            $entityManager->flush();
-
-          }
-                $commande->setStatu($select);
-                $entityManager->persist($commande);
-                $entityManager->flush();
-
-        if ($select == "expédiée") {
-             $client = $commande->getClient();
-            
-            $email = (new TemplatedEmail())
-                ->from(new Address('noreply@greenvillage.com', 'Green Village'))
-                ->to($client->getEmail())
-                ->subject('Green Village - Votre commande #' . $commande->getId() . ' a été expédiée')
-                ->htmlTemplate('mail/livraison_mail.html.twig')
-                ->context([
-                    'commande' => $commande,
-                    'client' => $client,
-                ]);
-            
-            $mailer->send($email);
-            
-            $this->addFlash('success', 'Statut mis à jour et email d\'expédition envoyé.');
-        }
-
-         } catch(\Exception $e) {
-            $this->addFlash('error', 'Une erreur s\'est produite, veuillez réessayer.');
-            return $this->redirectToRoute('app_admin');
-         }
-         
-        return $this->redirectToRoute('app_admin');
+    try {
         
+        $result = $commandeUpdateService->updateCommandeStatus($commandeId, $newStatus);
+        
+        if ($result['success']) {
+            $this->addFlash('success', $result['message']);
+        } else {
+            $this->addFlash('error', $result['message']);
+        }
+        
+    } catch (\InvalidArgumentException $e) {
+        $this->addFlash('error', 'Erreur dans le formulaire.');
+    } catch (\Exception $e) {
+        $this->addFlash('error', $e->getMessage());
+    }
+
+    return $this->redirectToRoute('app_admin');
+
     }
 
     // --------------------
 
 #[Route('/admin-update-det_com', name: 'app_admin_update_det_com', methods: ['POST'])]
-public function adminUpdateDetCom(CsrfTokenManagerInterface $csrfTokenManager, Request $request, CommandeRepository $commandeRepository, DetailCommandeRepository $detailComRepo,  EntityManagerInterface $entityManager, MailerInterface $mailer): Response
+public function adminUpdateDetCom(CsrfTokenManagerInterface $csrfTokenManager, Request $request, DetailCommandeRepository $detailComRepo, UpdateDetComService $commandeService): Response
 {
     if (!$this->isGranted('ROLE_COMMERCIAL') && !$this->isGranted('ROLE_ADMIN')) {
         $this->addFlash('error', 'Vous n\'avez pas les droits pour accéder à cette page.');
@@ -471,80 +434,30 @@ public function adminUpdateDetCom(CsrfTokenManagerInterface $csrfTokenManager, R
         throw new \Exception('Jeton CSRF invalide.');
     }
 
-    $tabValue = ['en_attente', 'en_préparation', 'expédiée', 'livrée'];
 
-    $id  = $request->request->get('com-commande-produit-id');
+    $id = $request->request->get('com-commande-produit-id');
     $select = $request->request->get('statut-produit');
     $detCommande = $detailComRepo->find($id);
-    
-    $commande = $detCommande->getCommande();
 
     if (!$detCommande) {
         $this->addFlash('error', 'Commande introuvable.');
         return $this->redirectToRoute('app_admin');
     }
 
-    if (!in_array($select, $tabValue, true)) {
-        $this->addFlash('error', 'Erreur dans le formulaire.');
-        return $this->redirectToRoute('app_admin');
-    }
-
     try {
-    
-        $ancienStatutCommande = $commande->getStatu();
-        $detCommande->setStatut($select);
-        
-       
-        $allLivree = true;
-        $hasExpediee = false;
-        foreach ($commande->getDetailCommandes() as $detail) {
-            if ($detail->getStatut() === 'expédiée') {
-                $hasExpediee = true;
-            }
-            if ($detail->getStatut() !== 'livrée') {
-                $allLivree = false;
-            }
-        }
-        
-        
-        if ($allLivree) {
-            $nouveauStatut = 'livrée';
-        } elseif ($hasExpediee) {
-            $nouveauStatut = 'expédiée';
-        } else {
-            $nouveauStatut = 'en_attente';
-        }
-        
-        $commande->setStatu($nouveauStatut);
-        
-        $entityManager->persist($detCommande);
-        $entityManager->flush();
+        $result = $commandeService->updateDetailCommande($detCommande, $select);
 
-        if ($ancienStatutCommande !== 'expédiée' && $nouveauStatut === 'expédiée') {
-            $client = $commande->getClient();
-            
-            $email = (new TemplatedEmail())
-                ->from(new Address('noreply@greenvillage.com', 'Green Village'))
-                ->to($client->getEmail())
-                ->subject('Green Village - Votre commande #' . $commande->getId() . ' a été expédiée')
-                ->htmlTemplate('mail/livraison_mail.html.twig')
-                ->context([
-                    'commande' => $commande,
-                    'client' => $client,
-                ]);
-            
-            $mailer->send($email);
-            
+        if ($result === 'expédiée') {
             $this->addFlash('success', 'Statut mis à jour et email d\'expédition envoyé.');
         } else {
             $this->addFlash('success', 'Statut mis à jour avec succès.');
         }
 
-    } catch(\Exception $e) {
-        $this->addFlash('error', 'Une erreur s\'est produite, veuillez réessayer.');
+    } catch (\Exception $e) {
+        $this->addFlash('error', 'Erreur lors de la mise à jour : ' . $e->getMessage());
         return $this->redirectToRoute('app_admin');
     }
-    
+
     return $this->redirectToRoute('app_admin');
 }
 
