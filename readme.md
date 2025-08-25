@@ -1,6 +1,6 @@
 # Fil Rouge CDA - Projet E-commerce Green Village
 
-<img src="symfony/public/image/gv_readme.png" width="400">
+<img src="Symfony/public/image/gv_readme.png" width="400">
 
 ## Conception et mise en place d'une base de données relationnelle
 
