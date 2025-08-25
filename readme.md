@@ -1,6 +1,6 @@
 # Fil Rouge CDA - Projet E-commerce Green Village
 
-<img src="public/image/gv_readme.png" width="400">
+<img src="symfony/public/image/gv_readme.png" width="400">
 
 ## Conception et mise en place d'une base de données relationnelle
 
@@ -136,15 +136,15 @@
 - [ ] Archivage des documents (conservation 3 ans minimum)
 - [x] Système de gestion des emails
 
-<!-- ## Application mobile
+## Application mobile (React)
 
 ### Fonctionnalités :
 
 - [x] Consultation du catalogue
 - [x] Navigation dans les rubriques
 - [x] Consultation des produits
-- [ ] Connexion via API
-- [ ] Package distribuable de l'application -->
+- [x] Connexion via API
+- [x] Package distribuable de l'application
 
 ## Tests et déploiement
 
