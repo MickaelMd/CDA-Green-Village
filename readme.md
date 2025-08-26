@@ -70,7 +70,7 @@ La sécurité est renforcée par la gestion des permissions, l’authentificatio
 - [x] Diagramme de séquences pour le scénario de commande
 - [x] Diagramme d'activité : processus de saisie d'une commande
 - [x] Diagramme des classes entités (modèle de données)
-- [ ] Diagramme de déploiement UML
+- [x] Diagramme de déploiement UML
 
 ## Installation et configuration de l'environnement
 
@@ -165,7 +165,7 @@ La sécurité est renforcée par la gestion des permissions, l’authentificatio
 
 ### Déploiement :
 
-- [ ] Documentation du déploiement
+- [x] Documentation du déploiement
 - [x] Publication du site sur un serveur
 - [ ] Application mobile sous forme de package
 
