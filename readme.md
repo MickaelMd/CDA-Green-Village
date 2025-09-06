@@ -167,7 +167,7 @@ La sécurité est renforcée par la gestion des permissions, l’authentificatio
 
 - [x] Documentation du déploiement
 - [x] Publication du site sur un serveur
-- [ ] Application mobile sous forme de package
+- [x] Application mobile sous forme de package
 
 ### DevOps :
 
